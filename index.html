@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日復盤系統</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #ffffff; --bg-2: #f6f5f1; --bg-3: #eeedea;
+  --text: #1a1a1a; --text-2: #6b6b6b; --text-3: #999;
+  --border: rgba(0,0,0,0.11); --border-2: rgba(0,0,0,0.2);
+  --radius: 8px; --radius-lg: 12px;
+  --purple: #534AB7; --purple-light: #EEEDFE; --purple-mid: #7F77DD; --purple-dark: #3C3489; --purple-darker: #26215C; --purple-100: #CECBF6;
+  --teal: #0F6E56; --teal-light: #E1F5EE; --teal-mid: #1D9E75; --teal-100: #9FE1CB;
+  --coral: #993C1D; --coral-light: #FAECE7; --coral-100: #F5C4B3;
+  --amber: #854F0B; --amber-light: #FAEEDA;
+  --red: #A32D2D; --red-light: #FCEBEB;
+  --green: #3B6D11; --green-light: #EAF3DE; --green-100: #C0DD97;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1e; --bg-2: #2c2c2e; --bg-3: #3a3a3c;
+    --text: #f0f0f0; --text-2: #a0a0a0; --text-3: #666;
+    --border: rgba(255,255,255,0.09); --border-2: rgba(255,255,255,0.18);
+    --purple-light: #26215C; --purple-100: #3C3489; --purple-dark: #CECBF6; --purple-darker: #EEEDFE;
+    --teal-light: #04342C; --teal-100: #085041; --teal: #5DCAA5;
+    --coral-light: #4A1B0C; --coral-100: #712B13; --coral: #F0997B;
+    --amber-light: #412402; --amber: #EF9F27;
+    --red-light: #501313; --red: #F09595;
+    --green-light: #173404; --green-100: #27500A; --green: #97C459;
+  }
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-2); color: var(--text); min-height: 100vh; padding: 1.5rem 1rem 4rem; }
+.app { max-width: 760px; margin: 0 auto; }
+.app-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
+.app-title { font-size: 20px; font-weight: 500; }
+.app-sub { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+.date-field { display: flex; align-items: center; gap: 6px; }
+.date-field label { font-size: 12px; color: var(--text-2); }
+input[type=date] { border: 0.5px solid var(--border-2); border-radius: var(--radius); padding: 5px 8px; font-size: 13px; background: var(--bg); color: var(--text); font-family: inherit; }
+.tabs { display: flex; border-bottom: 0.5px solid var(--border); margin-bottom: 1.25rem; }
+.tab { padding: 8px 18px; font-size: 13px; cursor: pointer; color: var(--text-2); border-bottom: 2px solid transparent; background: none; border-top: none; border-left: none; border-right: none; font-family: inherit; }
+.tab.active { color: var(--text); border-bottom-color: var(--purple); font-weight: 500; }
+.panel { display: none; }
+.panel.active { display: block; }
+.section-label { font-size: 11px; font-weight: 500; letter-spacing: 0.06em; color: var(--text-3); text-transform: uppercase; margin-bottom: 8px; }
+.card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 10px; }
+.card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; cursor: pointer; user-select: none; }
+.card-head-left { display: flex; align-items: center; gap: 8px; flex: 1; }
+.cat-pill { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
+.pill-work { background: var(--purple-light); color: var(--purple-dark); }
+.pill-health { background: var(--teal-light); color: var(--teal); }
+.pill-social { background: var(--coral-light); color: var(--coral); }
+.pill-event { background: var(--green-light); color: var(--green); }
+.card-score { font-size: 13px; font-weight: 500; color: var(--text); }
+.card-weight { font-size: 11px; color: var(--text-3); margin-left: 4px; }
+.chevron { font-size: 11px; color: var(--text-3); transition: transform 0.2s; }
+.chevron.open { transform: rotate(180deg); }
+.card-body { display: none; }
+.card-body.open { display: block; }
+.field-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.field-label { font-size: 13px; color: var(--text-2); min-width: 80px; flex-shrink: 0; }
+.field-hint { font-size: 11px; color: var(--text-3); }
+.field-sep { font-size: 13px; color: var(--text-3); }
+input[type=number], input[type=text] {
+  border: 0.5px solid var(--border-2); border-radius: var(--radius); padding: 6px 8px;
+  font-size: 13px; background: var(--bg); color: var(--text); font-family: inherit;
+}
+input[type=number] { width: 64px; }
+input[type=number].wide { width: 90px; }
+input[type=number]:focus, input[type=text]:focus, input[type=date]:focus, textarea:focus { outline: none; border-color: var(--purple-mid); }
+textarea { width: 100%; border: 0.5px solid var(--border-2); border-radius: var(--radius); padding: 9px 11px; font-size: 13px; resize: vertical; line-height: 1.6; background: var(--bg); color: var(--text); font-family: inherit; }
+input[type=text].mit { width: 100%; }
+.sub-scores { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin: 10px 0 4px; }
+.sub-score { background: var(--bg-2); border-radius: var(--radius); padding: 8px; text-align: center; }
+.sub-val { font-size: 16px; font-weight: 500; }
+.sub-label { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+.score-row { display: flex; justify-content: space-between; align-items: center; background: var(--bg-2); border-radius: var(--radius); padding: 8px 12px; margin-top: 8px; }
+.score-row-label { font-size: 12px; color: var(--text-2); }
+.score-row-val { font-size: 16px; font-weight: 500; }
+.radio-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.rbtn input { position: absolute; opacity: 0; width: 0; height: 0; }
+.rbtn { position: relative; }
+.rbtn label { display: inline-block; padding: 5px 13px; border-radius: 20px; font-size: 13px; border: 0.5px solid var(--border-2); cursor: pointer; color: var(--text-2); background: var(--bg); transition: all 0.12s; }
+.rbtn input:checked + label { background: var(--purple-light); color: var(--purple-dark); border-color: var(--purple-mid); font-weight: 500; }
+.sport-section { margin-top: 6px; }
+.sport-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.stag { padding: 5px 12px; border-radius: 20px; font-size: 12px; border: 0.5px solid var(--border-2); cursor: pointer; color: var(--text-2); background: var(--bg); user-select: none; transition: all 0.12s; }
+.stag.sel { background: var(--teal-light); color: var(--teal); border-color: var(--teal-mid); font-weight: 500; }
+.sport-hint { font-size: 11px; color: var(--text-3); margin-top: 6px; min-height: 16px; }
+.ai-box { background: var(--green-light); border-radius: var(--radius); padding: 11px 13px; font-size: 13px; color: var(--green); line-height: 1.7; margin-top: 10px; display: none; }
+.ai-box ul { padding-left: 1.2rem; margin-top: 6px; }
+.ai-box li { margin-bottom: 4px; font-size: 12px; }
+.ai-chip { display: inline-block; background: var(--green-100); color: var(--green); border-radius: 20px; padding: 2px 10px; font-size: 12px; font-weight: 500; margin-top: 6px; }
+button { font-family: inherit; cursor: pointer; }
+.btn { background: none; border: 0.5px solid var(--border-2); border-radius: var(--radius); padding: 7px 16px; font-size: 13px; color: var(--text); transition: background 0.12s; }
+.btn:hover { background: var(--bg-2); }
+.btn-primary { background: var(--purple); color: #EEEDFE; border: none; border-radius: var(--radius); padding: 8px 18px; font-size: 13px; font-weight: 500; transition: background 0.12s; }
+.btn-primary:hover { background: var(--purple-dark); }
+.btn-primary:disabled { background: var(--bg-2); color: var(--text-3); cursor: not-allowed; }
+.btn-danger { background: none; border: 0.5px solid var(--red); border-radius: var(--radius); padding: 7px 16px; font-size: 13px; color: var(--red); }
+.btn-danger:hover { background: var(--red-light); }
+.total-section { display: flex; justify-content: space-between; align-items: center; background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-top: 10px; }
+.total-label { font-size: 12px; color: var(--text-2); margin-bottom: 2px; }
+.total-val { font-size: 32px; font-weight: 500; }
+.btn-row { display: flex; gap: 8px; align-items: center; }
+.loading-spin { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--green-100); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.metric-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 1.25rem; }
+.metric { background: var(--bg-2); border-radius: var(--radius); padding: 12px; text-align: center; }
+.metric-val { font-size: 22px; font-weight: 500; }
+.metric-label { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+.week-summary { background: var(--purple-light); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 1.25rem; display: none; }
+.week-summary-title { font-size: 13px; font-weight: 500; color: var(--purple-dark); margin-bottom: 6px; }
+.week-summary-body { font-size: 12px; color: var(--purple-dark); line-height: 1.7; }
+.hist-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+.hist-row:last-child { border-bottom: none; }
+.hist-date { font-size: 12px; color: var(--text-2); min-width: 90px; }
+.hist-bar-wrap { flex: 1; background: var(--bg-2); border-radius: 4px; height: 5px; overflow: hidden; }
+.hist-bar { height: 100%; border-radius: 4px; background: var(--purple-mid); }
+.hist-score { font-weight: 500; min-width: 36px; text-align: right; font-size: 13px; }
+.hist-warn { font-size: 11px; color: var(--red); margin-left: 4px; }
+.hist-row.alert .hist-date { color: var(--red); }
+.week-chip { font-size: 11px; background: var(--amber-light); color: var(--amber); border-radius: 20px; padding: 1px 8px; margin-left: 6px; }
+.settings-field { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.settings-label { font-size: 13px; color: var(--text-2); min-width: 100px; }
+.weight-display { font-size: 13px; font-weight: 500; min-width: 36px; }
+.weight-total { font-size: 13px; padding: 8px 12px; border-radius: var(--radius); margin-top: 4px; }
+.weight-ok { background: var(--teal-light); color: var(--teal); }
+.weight-err { background: var(--red-light); color: var(--red); }
+input[type=range] { accent-color: var(--purple); flex: 1; }
+.sheets-input { flex: 1; border: 0.5px solid var(--border-2); border-radius: var(--radius); padding: 6px 9px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px; }
+.status-pill { font-size: 12px; padding: 3px 10px; border-radius: 20px; display: inline-block; }
+.s-ok { background: var(--teal-light); color: var(--teal); }
+.s-err { background: var(--red-light); color: var(--red); }
+.s-loading { background: var(--amber-light); color: var(--amber); }
+.code-block { background: var(--bg-2); border-radius: var(--radius); padding: 9px 11px; font-size: 11px; color: var(--text-2); font-family: 'SF Mono','Fira Code',monospace; line-height: 1.8; white-space: pre-wrap; word-break: break-all; margin-bottom: 12px; }
+.divider { border: none; border-top: 0.5px solid var(--border); margin: 12px 0; }
+.confirm-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; }
+.confirm-overlay.show { display: flex; }
+.confirm-box { background: var(--bg); border-radius: var(--radius-lg); padding: 1.5rem; max-width: 320px; width: 90%; }
+.confirm-title { font-size: 15px; font-weight: 500; margin-bottom: 8px; }
+.confirm-body { font-size: 13px; color: var(--text-2); margin-bottom: 1.25rem; line-height: 1.6; }
+.confirm-btns { display: flex; gap: 8px; justify-content: flex-end; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="app-header">
+    <div>
+      <div class="app-title">每日復盤系統</div>
+      <div class="app-sub">結構化記錄 · AI 輔助打分</div>
+    </div>
+    <div class="date-field">
+      <label>日期</label>
+      <input type="date" id="record-date">
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('log',event)">今日記錄</button>
+    <button class="tab" onclick="switchTab('history',event)">趨勢追蹤</button>
+    <button class="tab" onclick="switchTab('settings',event)">設定</button>
+    <button class="tab" onclick="switchTab('sheets',event)">Google Sheets</button>
+  </div>
+
+  <div id="panel-log" class="panel active">
+
+    <div class="section-label" style="margin-bottom:6px;">今日事件</div>
+    <div class="card" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+        <span class="field-label" style="flex-shrink:0;">MIT 目標</span>
+        <input type="text" id="mit" placeholder="今日最重要一件事..." style="flex:1;min-width:140px;border:0.5px solid var(--border-2);border-radius:var(--radius);padding:6px 8px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;">
+        <div class="radio-group" style="flex-shrink:0;">
+          <div class="rbtn"><input type="radio" name="mit-done" id="mit-yes" value="yes"><label for="mit-yes">完成</label></div>
+          <div class="rbtn"><input type="radio" name="mit-done" id="mit-partial" value="partial"><label for="mit-partial">部分完成</label></div>
+          <div class="rbtn"><input type="radio" name="mit-done" id="mit-no" value="no"><label for="mit-no">未完成</label></div>
+        </div>
+      </div>
+      <textarea id="event-text" rows="3" placeholder="條列今日發生的事件&#10;• 完成了...&#10;• 開會討論...&#10;• 晚上..."></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+        <button class="btn-primary" id="ai-btn" onclick="runAI()">AI 分析今日</button>
+        <span id="ai-status" style="font-size:12px;color:var(--text-2);"></span>
+      </div>
+      <div class="ai-box" id="ai-box">
+        <div id="ai-summary"></div>
+        <ul id="ai-reasons"></ul>
+        <span class="ai-chip" id="ai-chip"></span>
+      </div>
+    </div>
+
+    <div class="section-label">三大維度</div>
+
+    <div class="card" id="card-work">
+      <div class="card-head" onclick="toggleCard('work')">
+        <div class="card-head-left">
+          <span class="cat-pill pill-work">工作表現</span>
+          <span class="card-score" id="work-score-disp">—</span>
+          <span class="card-weight" id="work-weight-disp"></span>
+        </div>
+        <span class="chevron" id="chev-work">▼</span>
+      </div>
+      <div class="card-body open" id="body-work">
+        <div class="field-row">
+          <span class="field-label">任務數</span>
+          <input type="number" id="task-total" min="0" placeholder="計劃">
+          <span class="field-sep">/</span>
+          <input type="number" id="task-done" min="0" placeholder="完成">
+          <span class="field-hint">完成率</span>
+        </div>
+        <div class="field-row">
+          <span class="field-label">專注狀態</span>
+          <input type="number" id="focus-d" min="0" placeholder="分心">
+          <input type="number" id="focus-n" min="0" placeholder="一般">
+          <input type="number" id="focus-f" min="0" placeholder="專注">
+          <span class="field-hint">各幾次</span>
+        </div>
+        <div class="field-row">
+          <span class="field-label">工作時長</span>
+          <input type="number" id="work-h" min="0" max="23" placeholder="時">
+          <span class="field-sep">時</span>
+          <input type="number" id="work-m" min="0" max="59" placeholder="分">
+          <span class="field-sep">分</span>
+          <span class="field-hint">目標 4h</span>
+        </div>
+        <div class="field-row">
+          <span class="field-label">休息時長</span>
+          <input type="number" id="rest-h" min="0" max="23" placeholder="時">
+          <span class="field-sep">時</span>
+          <input type="number" id="rest-m" min="0" max="59" placeholder="分">
+          <span class="field-sep">分</span>
+          <span class="field-hint" id="rest-hint">理想休息依工作時數計算</span>
+        </div>
+        <div class="sub-scores">
+          <div class="sub-score"><div class="sub-val" id="sub-mit">—</div><div class="sub-label">MIT</div></div>
+          <div class="sub-score"><div class="sub-val" id="sub-task">—</div><div class="sub-label">任務完成率</div></div>
+          <div class="sub-score"><div class="sub-val" id="sub-focus">—</div><div class="sub-label">專注比</div></div>
+          <div class="sub-score"><div class="sub-val" id="sub-time">—</div><div class="sub-label">時數效率</div></div>
+        </div>
+        <div class="score-row">
+          <span class="score-row-label">工作表現（MIT 25% + 任務 25% + 專注 25% + 時數 25%）</span>
+          <span class="score-row-val" id="work-score-val">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="card-health">
+      <div class="card-head" onclick="toggleCard('health')">
+        <div class="card-head-left">
+          <span class="cat-pill pill-health">健康表現</span>
+          <span class="card-score" id="health-score-disp">—</span>
+          <span class="card-weight" id="health-weight-disp"></span>
+        </div>
+        <span class="chevron" id="chev-health">▼</span>
+      </div>
+      <div class="card-body open" id="body-health">
+        <div class="field-row">
+          <span class="field-label">睡眠時長</span>
+          <input type="number" id="sleep-h" min="0" max="23" placeholder="時">
+          <span class="field-sep">時</span>
+          <input type="number" id="sleep-m" min="0" max="59" placeholder="分">
+          <span class="field-sep">分</span>
+        </div>
+        <div class="field-row">
+          <span class="field-label">睡眠分數</span>
+          <input type="number" id="sleep-score" min="0" max="100" placeholder="0–100">
+          <span class="field-hint">手環 / 手錶數據</span>
+        </div>
+        <div class="field-row">
+          <span class="field-label">熱量攝取</span>
+          <input type="number" id="calories" class="wide" min="0" placeholder="大卡">
+          <span class="field-hint">基準 2800 kcal，低於為赤字加分</span>
+        </div>
+        <div class="field-row" style="align-items:flex-start;padding-top:2px;">
+          <span class="field-label" style="padding-top:6px;">運動</span>
+          <div>
+            <div class="radio-group">
+              <div class="rbtn"><input type="radio" name="has-sport" id="sport-yes" value="yes" onchange="toggleSportSection()"><label for="sport-yes">有運動</label></div>
+              <div class="rbtn"><input type="radio" name="has-sport" id="sport-no" value="no" onchange="toggleSportSection()"><label for="sport-no">無運動</label></div>
+            </div>
+            <div class="sport-section" id="sport-section" style="display:none;">
+              <div class="sport-tags">
+                <span class="stag" data-val="跑步" data-score="10" onclick="toggleSport(this)">跑步</span>
+                <span class="stag" data-val="巴西柔術" data-score="10" onclick="toggleSport(this)">巴西柔術</span>
+                <span class="stag" data-val="登山" data-score="10" onclick="toggleSport(this)">登山</span>
+                <span class="stag" data-val="重訓" data-score="7" onclick="toggleSport(this)">重訓</span>
+                <span class="stag" data-val="籃球" data-score="7" onclick="toggleSport(this)">籃球</span>
+                <span class="stag" data-val="騎單車" data-score="7" onclick="toggleSport(this)">騎單車</span>
+                <span class="stag" data-val="匹克球" data-score="5" onclick="toggleSport(this)">匹克球</span>
+              </div>
+              <div class="sport-hint" id="sport-hint">選擇運動項目</div>
+            </div>
+          </div>
+        </div>
+        <div class="sub-scores">
+          <div class="sub-score"><div class="sub-val" id="sub-sleep">—</div><div class="sub-label">睡眠</div></div>
+          <div class="sub-score"><div class="sub-val" id="sub-diet">—</div><div class="sub-label">飲食</div></div>
+          <div class="sub-score"><div class="sub-val" id="sub-sport">—</div><div class="sub-label">運動</div></div>
+        </div>
+        <div class="score-row">
+          <span class="score-row-label">健康表現（睡眠 ⅓ + 飲食 ⅓ + 運動 ⅓）</span>
+          <span class="score-row-val" id="health-score-val">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="card-social">
+      <div class="card-head" onclick="toggleCard('social')">
+        <div class="card-head-left">
+          <span class="cat-pill pill-social">人際與情緒</span>
+          <span class="card-score" id="social-score-disp">—</span>
+          <span class="card-weight" id="social-weight-disp"></span>
+        </div>
+        <span class="chevron" id="chev-social">▼</span>
+      </div>
+      <div class="card-body open" id="body-social">
+        <div class="field-row" style="align-items:flex-start;padding-top:2px;">
+          <span class="field-label" style="padding-top:6px;">情緒狀態</span>
+          <div class="radio-group">
+            <div class="rbtn"><input type="radio" name="mood" id="mood-1" value="1" onchange="calcAll()"><label for="mood-1">差</label></div>
+            <div class="rbtn"><input type="radio" name="mood" id="mood-2" value="3" onchange="calcAll()"><label for="mood-2">不好</label></div>
+            <div class="rbtn"><input type="radio" name="mood" id="mood-3" value="5" onchange="calcAll()"><label for="mood-3">還好</label></div>
+            <div class="rbtn"><input type="radio" name="mood" id="mood-4" value="8" onchange="calcAll()"><label for="mood-4">好</label></div>
+            <div class="rbtn"><input type="radio" name="mood" id="mood-5" value="10" onchange="calcAll()"><label for="mood-5">開心</label></div>
+          </div>
+        </div>
+        <div class="field-row" style="align-items:flex-start;padding-top:2px;">
+          <span class="field-label" style="padding-top:6px;">有意義社交</span>
+          <div class="radio-group">
+            <div class="rbtn"><input type="radio" name="social-yn" id="soc-yes" value="yes" onchange="calcAll()"><label for="soc-yes">有</label></div>
+            <div class="rbtn"><input type="radio" name="social-yn" id="soc-no" value="no" onchange="calcAll()"><label for="soc-no">無</label></div>
+          </div>
+        </div>
+        <div class="score-row">
+          <span class="score-row-label">人際與情緒（情緒 70% + 社交 30%）</span>
+          <span class="score-row-val" id="social-score-val">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="total-section">
+      <div>
+        <div class="total-label">今日總分</div>
+        <div class="total-val" id="total-score">—</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-danger" onclick="confirmClear()">清除今日</button>
+        <button class="btn-primary" onclick="saveDay()">儲存今日</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="panel-history" class="panel">
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-val" id="h-days">0</div><div class="metric-label">已記錄天數</div></div>
+      <div class="metric"><div class="metric-val" id="h-avg">—</div><div class="metric-label">平均分</div></div>
+      <div class="metric"><div class="metric-val" id="h-best">—</div><div class="metric-label">最高日分</div></div>
+    </div>
+
+    <div class="week-summary" id="week-summary">
+      <div class="week-summary-title" id="week-title"></div>
+      <div class="week-summary-body" id="week-body"></div>
+    </div>
+
+    <div class="section-label">每日總分趨勢</div>
+    <div style="position:relative;width:100%;height:200px;margin-bottom:1.25rem;">
+      <canvas id="trend-chart" role="img" aria-label="每日總分趨勢折線圖">每日總分趨勢</canvas>
+    </div>
+
+    <div class="section-label">三大維度雷達（最近一日）</div>
+    <div style="position:relative;width:100%;height:250px;margin-bottom:1.25rem;">
+      <canvas id="radar-chart" role="img" aria-label="三大維度雷達圖">維度雷達圖</canvas>
+    </div>
+
+    <div class="section-label">歷史記錄</div>
+    <div id="history-list"></div>
+  </div>
+
+  <div id="panel-settings" class="panel">
+    <div class="card">
+      <div style="font-size:14px;font-weight:500;margin-bottom:14px;">各維度佔總分權重</div>
+      <div class="settings-field">
+        <span class="settings-label">今日事件</span>
+        <input type="range" min="0" max="60" step="5" id="w-event" oninput="updateWeights('event')">
+        <span class="weight-display" id="wd-event">25%</span>
+      </div>
+      <div class="settings-field">
+        <span class="settings-label">工作表現</span>
+        <input type="range" min="0" max="60" step="5" id="w-work" oninput="updateWeights('work')">
+        <span class="weight-display" id="wd-work">25%</span>
+      </div>
+      <div class="settings-field">
+        <span class="settings-label">健康表現</span>
+        <input type="range" min="0" max="60" step="5" id="w-health" oninput="updateWeights('health')">
+        <span class="weight-display" id="wd-health">25%</span>
+      </div>
+      <div class="settings-field">
+        <span class="settings-label">人際與情緒</span>
+        <input type="range" min="0" max="60" step="5" id="w-social" oninput="updateWeights('social')">
+        <span class="weight-display" id="wd-social">25%</span>
+      </div>
+      <div class="weight-total" id="weight-total">總計 100% ✓</div>
+    </div>
+
+    <div class="card" style="margin-top:10px;">
+      <div style="font-size:14px;font-weight:500;margin-bottom:10px;">評分邏輯說明</div>
+      <div style="font-size:12px;color:var(--text-2);line-height:1.8;">
+        <b>工作表現</b>：MIT完成(25%) + 任務完成率(25%) + 專注比(25%) + 工作休息時數效率(25%)<br>
+        <b>時數效率</b>：工作≥4h為基準，休息時數對照理想值（每2h配0.5h，4h/8h節點允許更長）<br>
+        <b>健康表現</b>：睡眠(33%) + 飲食(33%) + 運動(33%)；睡眠以6–7h為最佳，飲食2101–2300kcal滿分，無運動不扣分（給5分），有運動依項目：高分群10 / 中分群7 / 匹克球5<br>
+        <b>人際與情緒</b>：情緒(70%) + 有意義社交(30%)<br>
+        <b>今日事件</b>：AI 根據事件豐富度、MIT完成情況、整體品質給分<br>
+        <b>連續三天</b>任一維度低於5分會在歷史記錄自動標示警示
+      </div>
+    </div>
+  </div>
+
+  <div id="panel-sheets" class="panel">
+    <div class="card">
+      <div style="font-size:14px;font-weight:500;margin-bottom:10px;">Google Sheets 連動</div>
+      <div style="font-size:13px;color:var(--text-2);margin-bottom:14px;line-height:1.7;">
+        透過 Google Apps Script 建立 Web App 端點，每次儲存自動寫入試算表。
+      </div>
+      <div class="section-label">Apps Script 程式碼</div>
+      <div class="code-block">function doPost(e) {
+  const data = JSON.parse(e.postData.contents);
+  const ss = SpreadsheetApp.openById('YOUR_SHEET_ID');
+  let sheet = ss.getSheetByName('每日復盤');
+  if (!sheet) {
+    sheet = ss.insertSheet('每日復盤');
+    sheet.appendRow(['日期','總分','工作','健康','人際情緒','事件',
+      'MIT','MIT完成','任務率%','專注比%','工作時數','休息時數',
+      '睡眠時數','睡眠分','熱量','運動','情緒','社交']);
+  }
+  sheet.appendRow([
+    data.date, data.total, data.workScore, data.healthScore,
+    data.socialScore, data.eventScore,
+    data.mit, data.mitDone, data.taskRate, data.focusRate,
+    data.workHours, data.restHours,
+    data.sleepHours, data.sleepScore, data.calories,
+    data.sports, data.mood, data.social
+  ]);
+  return ContentService.createTextOutput('ok');
+}</div>
+      <div class="section-label">Web App 網址</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input type="text" id="sheets-url" class="sheets-input" placeholder="https://script.google.com/macros/s/.../exec">
+        <button class="btn-primary" onclick="testSheets()">測試</button>
+      </div>
+      <div id="sheets-status"></div>
+      <div class="divider"></div>
+      <div style="font-size:12px;color:var(--text-3);line-height:1.7;">部署設定：執行身份選「我」，存取權選「所有人（包括匿名）」。</div>
+    </div>
+  </div>
+</div>
+
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="confirm-title">清除今日記錄？</div>
+    <div class="confirm-body">所有欄位將會清空，此操作無法復原。</div>
+    <div class="confirm-btns">
+      <button class="btn" onclick="closeConfirm()">取消</button>
+      <button class="btn-primary" style="background:var(--red);border-color:var(--red);" onclick="clearAll()">確認清除</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+let history = JSON.parse(localStorage.getItem('daily_v2') || '[]');
+let sheetsUrl = localStorage.getItem('sheets_daily_v2') || '';
+let aiEventScore = null;
+let weights = JSON.parse(localStorage.getItem('weights_v2') || 'null') || { event:25, work:25, health:25, social:25 };
+let trendChart = null, radarChart = null;
+
+function init() {
+  const today = new Date();
+  document.getElementById('record-date').value = today.toISOString().split('T')[0];
+  if (sheetsUrl) document.getElementById('sheets-url').value = sheetsUrl;
+  ['event','work','health','social'].forEach(k => {
+    const el = document.getElementById('w-'+k);
+    if (el) { el.value = weights[k]; document.getElementById('wd-'+k).textContent = weights[k]+'%'; }
+  });
+  updateWeightDisplays();
+  if (history.length) checkWeeklySummary();
+}
+
+function switchTab(t, e) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  e.target.classList.add('active');
+  document.getElementById('panel-'+t).classList.add('active');
+  if (t === 'history') renderHistory();
+}
+
+function toggleCard(id) {
+  const body = document.getElementById('body-'+id);
+  const chev = document.getElementById('chev-'+id);
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+
+function toggleSportSection() {
+  const hasSport = document.querySelector('input[name="has-sport"]:checked')?.value === 'yes';
+  document.getElementById('sport-section').style.display = hasSport ? 'block' : 'none';
+  if (!hasSport) document.querySelectorAll('.stag').forEach(t => t.classList.remove('sel'));
+  calcAll();
+}
+
+function toggleSport(el) {
+  el.classList.toggle('sel');
+  const selected = [...document.querySelectorAll('.stag.sel')];
+  const hint = document.getElementById('sport-hint');
+  if (!selected.length) { hint.textContent = '選擇運動項目'; }
+  else {
+    const maxS = Math.max(...selected.map(s => parseInt(s.dataset.score)));
+    const tier = maxS >= 10 ? '高分群（+10）' : maxS >= 7 ? '中分群（+7）' : '低分群（+5）';
+    hint.textContent = `已選：${selected.map(s=>s.dataset.val).join('、')} — ${tier}`;
+  }
+  calcAll();
+}
+
+function getN(id, fallback = 0) {
+  const v = parseFloat(document.getElementById(id)?.value);
+  return isNaN(v) ? fallback : v;
+}
+
+function idealRest(workHours) {
+  if (workHours <= 0) return 0;
+  if (workHours <= 2) return 0.5;
+  if (workHours <= 4) return 0.5 + (workHours - 2) / 2 * 1.5;
+  if (workHours <= 6) return 2 + (workHours - 4) / 2 * 0.5;
+  if (workHours <= 8) return 2.5 + (workHours - 6) / 2 * 1.5;
+  return 4 + (workHours - 8) * 0.5;
+}
+
+function calcWork() {
+  const mitDone = document.querySelector('input[name="mit-done"]:checked')?.value;
+  const mitScore = mitDone === 'yes' ? 10 : mitDone === 'partial' ? 6 : mitDone === 'no' ? 2 : null;
+
+  const total = getN('task-total'); const done = getN('task-done');
+  const taskRate = total > 0 ? Math.min(done/total, 1) : null;
+  const taskScore = taskRate !== null ? taskRate * 10 : null;
+
+  const fd = getN('focus-d'); const fn = getN('focus-n'); const ff = getN('focus-f');
+  const focusTotal = fd + fn + ff;
+  const focusRate = focusTotal > 0 ? (ff + fn*0.5) / focusTotal : null;
+  const focusScore = focusRate !== null ? focusRate * 10 : null;
+
+  const workHours = getN('work-h') + getN('work-m')/60;
+  const restHours = getN('rest-h') + getN('rest-m')/60;
+  const ideal = idealRest(workHours);
+  const hint = document.getElementById('rest-hint');
+  hint.textContent = workHours > 0 ? `理想休息約 ${ideal.toFixed(1)}h` : '理想休息依工作時數計算';
+
+  let timeScore = null;
+  if (workHours > 0) {
+    const workBaseScore = Math.min(workHours / 4, 1) * 10;
+    let restScore = 10;
+    if (ideal > 0) {
+      const ratio = restHours / ideal;
+      if (ratio < 0.5) restScore = 4;
+      else if (ratio < 0.8) restScore = 7;
+      else if (ratio <= 1.2) restScore = 10;
+      else if (ratio <= 1.6) restScore = 7;
+      else restScore = 4;
+    }
+    timeScore = (workBaseScore + restScore) / 2;
+  }
+
+  const parts = [mitScore, taskScore, focusScore, timeScore].filter(x => x !== null);
+  const score = parts.length ? parts.reduce((a,b)=>a+b,0)/parts.length : null;
+
+  document.getElementById('sub-mit').textContent = mitScore !== null ? mitScore.toFixed(1) : '—';
+  document.getElementById('sub-task').textContent = taskScore !== null ? taskScore.toFixed(1) : '—';
+  document.getElementById('sub-focus').textContent = focusScore !== null ? focusScore.toFixed(1) : '—';
+  document.getElementById('sub-time').textContent = timeScore !== null ? timeScore.toFixed(1) : '—';
+
+  return { score, taskRate: taskRate !== null ? Math.round(taskRate*100) : null, focusRate: focusRate !== null ? Math.round(focusRate*100) : null, workHours, restHours, mitDone };
+}
+
+function calcHealth() {
+  const sleepH = getN('sleep-h') + getN('sleep-m')/60;
+  const sleepScoreRaw = document.getElementById('sleep-score').value !== '' ? getN('sleep-score', -1) : -1;
+  const calories = document.getElementById('calories').value !== '' ? getN('calories', -1) : -1;
+  const hasSport = document.querySelector('input[name="has-sport"]:checked')?.value;
+
+  let sleepScore = null;
+  if (sleepH > 0 || sleepScoreRaw >= 0) {
+    const durScore = (sleepH >= 6 && sleepH < 7) ? 10 : (sleepH >= 7 && sleepH < 8) ? 8 : (sleepH >= 5 && sleepH < 6) ? 6 : sleepH >= 8 ? 6 : sleepH >= 4 ? 4 : 2;
+    const qualScore = sleepScoreRaw >= 0 ? sleepScoreRaw/10 : durScore;
+    sleepScore = (durScore + qualScore) / 2;
+  }
+
+  let dietScore = null;
+  if (calories >= 0) {
+    if (calories <= 2100) dietScore = 9;
+    else if (calories <= 2300) dietScore = 10;
+    else if (calories <= 2500) dietScore = 8;
+    else if (calories <= 2800) dietScore = 6;
+    else if (calories <= 3200) dietScore = 4;
+    else dietScore = 2;
+  }
+
+  let sportScore = null;
+  if (hasSport === 'no') { sportScore = 5; }
+  else if (hasSport === 'yes') {
+    const selected = [...document.querySelectorAll('.stag.sel')];
+    if (!selected.length) { sportScore = 5; }
+    else {
+      const maxS = Math.max(...selected.map(s => parseInt(s.dataset.score)));
+      sportScore = maxS;
+    }
+  }
+
+  const parts = [sleepScore, dietScore, sportScore].filter(x => x !== null);
+  const score = parts.length ? parts.reduce((a,b)=>a+b,0)/parts.length : null;
+
+  document.getElementById('sub-sleep').textContent = sleepScore !== null ? sleepScore.toFixed(1) : '—';
+  document.getElementById('sub-diet').textContent = dietScore !== null ? dietScore.toFixed(1) : '—';
+  document.getElementById('sub-sport').textContent = sportScore !== null ? sportScore.toFixed(1) : '—';
+
+  const sports = [...document.querySelectorAll('.stag.sel')].map(s=>s.dataset.val).join('、') || (hasSport==='no'?'無':'');
+  return { score, sleepHours: sleepH, sleepScore: sleepScoreRaw, calories, sports };
+}
+
+function calcSocial() {
+  const moodEl = document.querySelector('input[name="mood"]:checked');
+  const socialEl = document.querySelector('input[name="social-yn"]:checked');
+  const moodVal = moodEl ? parseInt(moodEl.value) : null;
+  const socialVal = socialEl?.value || null;
+  if (moodVal === null && !socialVal) return { score: null, mood: moodVal, social: socialVal };
+  const moodScore = moodVal || 5;
+  const socialScore = socialVal === 'yes' ? 10 : socialVal === 'no' ? 4 : 5;
+  const score = moodScore * 0.7 + socialScore * 0.3;
+  return { score, mood: moodVal, social: socialVal };
+}
+
+function calcAll() {
+  const work = calcWork();
+  const health = calcHealth();
+  const social = calcSocial();
+
+  const ws = work.score; const hs = health.score; const ss = social.score; const es = aiEventScore;
+  const ww = weights.work/100; const hw = weights.health/100; const sw = weights.social/100; const ew = weights.event/100;
+
+  const update = (id, val) => {
+    const txt = val !== null ? val.toFixed(1) : '—';
+    document.getElementById(id+'-score-disp').textContent = txt;
+    document.getElementById(id+'-score-val').textContent = txt;
+  };
+  update('work', ws); update('health', hs); update('social', ss);
+
+  const scores = [];
+  if (ws !== null) scores.push({ v: ws, w: ww });
+  if (hs !== null) scores.push({ v: hs, w: hw });
+  if (ss !== null) scores.push({ v: ss, w: sw });
+  if (es !== null) scores.push({ v: es, w: ew });
+
+  let total = null;
+  if (scores.length) {
+    const totalW = scores.reduce((a,b)=>a+b.w, 0);
+    total = scores.reduce((a,b)=>a+b.v*b.w, 0) / totalW;
+  }
+  document.getElementById('total-score').textContent = total !== null ? total.toFixed(1) : '—';
+  return { work, health, social, ws, hs, ss, es, total };
+}
+
+['task-total','task-done','focus-d','focus-n','focus-f','work-h','work-m','rest-h','rest-m','sleep-h','sleep-m','sleep-score','calories'].forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', () => {
+    const max = parseInt(el.max);
+    const min = parseInt(el.min) || 0;
+    if (!isNaN(max) && parseFloat(el.value) > max) el.value = max;
+    if (el.value !== '' && parseFloat(el.value) < min) el.value = min;
+    calcAll();
+  });
+});
+document.querySelectorAll('input[name="mit-done"]').forEach(el => el.addEventListener('change', calcAll));
+
+async function runAI() {
+  const events = document.getElementById('event-text').value.trim();
+  const mit = document.getElementById('mit').value.trim();
+  if (!events && !mit) { alert('請先填入今日事件或MIT目標'); return; }
+
+  const btn = document.getElementById('ai-btn');
+  const status = document.getElementById('ai-status');
+  btn.disabled = true;
+  status.innerHTML = '<span class="loading-spin"></span> 分析中...';
+
+  const prompt = `你是嚴格的個人成長教練。根據今日資訊給出事件品質分數（1-10整數）。
+
+MIT（最重要目標）：${mit || '未填寫'}
+今日事件：
+${events || '未填寫'}
+
+評分考量：MIT是否完成、事件豐富度、是否有明顯的成長或進展、整體品質。
+
+只回覆JSON不要其他文字：
+{"score":7,"summary":"一句話總結","reasons":["原因一","原因二","原因三"]}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 400, messages: [{ role: 'user', content: prompt }] })
+    });
+    const data = await res.json();
+    const raw = data.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(raw);
+    aiEventScore = parsed.score;
+
+    const box = document.getElementById('ai-box');
+    box.style.display = 'block';
+    document.getElementById('ai-summary').textContent = parsed.summary || '';
+    const ul = document.getElementById('ai-reasons');
+    ul.innerHTML = (parsed.reasons || []).map(r=>`<li>${r}</li>`).join('');
+    document.getElementById('ai-chip').textContent = `事件品質分 ${parsed.score} / 10`;
+    status.textContent = `完成（佔總分 ${weights.event}%）`;
+    calcAll();
+  } catch(e) {
+    status.textContent = '分析失敗，請稍後再試';
+  }
+  btn.disabled = false;
+}
+
+function getTodayStr() {
+  return document.getElementById('record-date').value || new Date().toISOString().split('T')[0];
+}
+
+async function saveDay() {
+  const result = calcAll();
+  const { work, health, social, ws, hs, ss, es, total } = result;
+  if (total === null) { alert('請至少填寫一個維度的數據'); return; }
+  const date = getTodayStr();
+
+  const entry = {
+    date, total: parseFloat(total.toFixed(1)),
+    workScore: ws !== null ? parseFloat(ws.toFixed(1)) : null,
+    healthScore: hs !== null ? parseFloat(hs.toFixed(1)) : null,
+    socialScore: ss !== null ? parseFloat(ss.toFixed(1)) : null,
+    eventScore: es,
+    mit: document.getElementById('mit').value,
+    mitDone: work.mitDone,
+    taskRate: work.taskRate, focusRate: work.focusRate,
+    workHours: parseFloat(work.workHours.toFixed(2)),
+    restHours: parseFloat(work.restHours.toFixed(2)),
+    sleepHours: parseFloat(health.sleepHours.toFixed(2)),
+    sleepScore: health.sleepScore,
+    calories: health.calories,
+    sports: health.sports,
+    mood: social.mood,
+    social: social.social
+  };
+
+  history = history.filter(h => h.date !== date);
+  history.unshift(entry);
+  localStorage.setItem('daily_v2', JSON.stringify(history));
+
+  const url = document.getElementById('sheets-url')?.value.trim() || sheetsUrl;
+  if (url) {
+    sheetsUrl = url;
+    localStorage.setItem('sheets_daily_v2', url);
+    try { await fetch(url, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body: JSON.stringify(entry) }); } catch(e) {}
+  }
+  alert(`已儲存 ${date}，總分 ${total.toFixed(1)}`);
+}
+
+function confirmClear() { document.getElementById('confirm-overlay').classList.add('show'); }
+function closeConfirm() { document.getElementById('confirm-overlay').classList.remove('show'); }
+function clearAll() {
+  closeConfirm();
+  ['task-total','task-done','focus-d','focus-n','focus-f','work-h','work-m','rest-h','rest-m','sleep-h','sleep-m','sleep-score','calories','mit','event-text'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.querySelectorAll('input[type=radio]').forEach(r => r.checked = false);
+  document.querySelectorAll('.stag').forEach(t => t.classList.remove('sel'));
+  document.getElementById('sport-section').style.display = 'none';
+  document.getElementById('ai-box').style.display = 'none';
+  document.getElementById('ai-status').textContent = '';
+  document.getElementById('rest-hint').textContent = '理想休息依工作時數計算';
+  ['work','health','social'].forEach(id => {
+    document.getElementById(id+'-score-disp').textContent = '—';
+    document.getElementById(id+'-score-val').textContent = '—';
+  });
+  ['sub-mit','sub-task','sub-focus','sub-time','sub-sleep','sub-diet','sub-sport'].forEach(id => {
+    document.getElementById(id).textContent = '—';
+  });
+  document.getElementById('total-score').textContent = '—';
+  aiEventScore = null;
+}
+
+function updateWeights(changed) {
+  const keys = ['event','work','health','social'];
+  keys.forEach(k => { weights[k] = parseInt(document.getElementById('w-'+k).value); });
+  const total = keys.reduce((a,k)=>a+weights[k],0);
+  const el = document.getElementById('weight-total');
+  el.textContent = `總計 ${total}% ${total===100?'✓':'← 需調整至 100%'}`;
+  el.className = 'weight-total ' + (total===100?'weight-ok':'weight-err');
+  keys.forEach(k => { document.getElementById('wd-'+k).textContent = weights[k]+'%'; });
+  if (total === 100) {
+    localStorage.setItem('weights_v2', JSON.stringify(weights));
+    updateWeightDisplays();
+    calcAll();
+  }
+}
+
+function updateWeightDisplays() {
+  ['work','health','social'].forEach(k => {
+    const el = document.getElementById(k+'-weight-disp');
+    if (el) el.textContent = `佔 ${weights[k]}%`;
+  });
+}
+
+function renderHistory() {
+  if (!history.length) {
+    document.getElementById('h-days').textContent = '0';
+    document.getElementById('h-avg').textContent = '—';
+    document.getElementById('h-best').textContent = '—';
+    document.getElementById('history-list').innerHTML = '<div style="font-size:13px;color:var(--text-2);padding:1rem 0;">尚無記錄。</div>';
+    return;
+  }
+  const totals = history.map(h=>h.total);
+  document.getElementById('h-days').textContent = history.length;
+  document.getElementById('h-avg').textContent = (totals.reduce((a,b)=>a+b,0)/totals.length).toFixed(1);
+  document.getElementById('h-best').textContent = Math.max(...totals).toFixed(1);
+
+  const dims = ['workScore','healthScore','socialScore'];
+  const alertDates = new Set();
+  for (let i = 0; i < history.length - 2; i++) {
+    dims.forEach(d => {
+      const vals = [history[i][d], history[i+1][d], history[i+2][d]];
+      if (vals.every(v => v !== null && v < 5)) {
+        alertDates.add(history[i].date);
+        alertDates.add(history[i+1].date);
+        alertDates.add(history[i+2].date);
+      }
+    });
+  }
+
+  const list = document.getElementById('history-list');
+  list.innerHTML = '';
+  history.slice(0,21).forEach(h => {
+    const isAlert = alertDates.has(h.date);
+    const row = document.createElement('div');
+    row.className = 'hist-row' + (isAlert ? ' alert' : '');
+    const isSunday = new Date(h.date).getDay() === 0;
+    row.innerHTML = `
+      <span class="hist-date">${h.date.slice(5)}${isSunday?'<span class="week-chip">週日</span>':''}</span>
+      <div class="hist-bar-wrap"><div class="hist-bar" style="width:${h.total*10}%"></div></div>
+      <span class="hist-score">${h.total.toFixed(1)}</span>
+      ${isAlert ? '<span class="hist-warn">⚠ 低分警示</span>' : ''}
+    `;
+    list.appendChild(row);
+  });
+
+  checkWeeklySummary();
+  renderCharts();
+}
+
+function checkWeeklySummary() {
+  const today = new Date();
+  const isSunday = today.getDay() === 0;
+  const box = document.getElementById('week-summary');
+  if (!isSunday || !history.length) { box.style.display='none'; return; }
+
+  const weekAgo = new Date(today); weekAgo.setDate(today.getDate()-6);
+  const weekStr = weekAgo.toISOString().split('T')[0];
+  const weekData = history.filter(h => h.date >= weekStr);
+  if (!weekData.length) { box.style.display='none'; return; }
+
+  const avg = (arr, key) => { const v = arr.map(h=>h[key]).filter(x=>x!==null); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; };
+  const totalAvg = avg(weekData,'total');
+  const workAvg = avg(weekData,'workScore');
+  const healthAvg = avg(weekData,'healthScore');
+  const socialAvg = avg(weekData,'socialScore');
+
+  box.style.display = 'block';
+  document.getElementById('week-title').textContent = `本週復盤摘要（${weekData.length} 天）`;
+  document.getElementById('week-body').innerHTML = `
+    總分平均 <b>${totalAvg?.toFixed(1)||'—'}</b>　
+    工作 <b>${workAvg?.toFixed(1)||'—'}</b>　
+    健康 <b>${healthAvg?.toFixed(1)||'—'}</b>　
+    人際情緒 <b>${socialAvg?.toFixed(1)||'—'}</b><br>
+    記錄天數：${weekData.length}/7　最高日分：${Math.max(...weekData.map(h=>h.total)).toFixed(1)}　最低日分：${Math.min(...weekData.map(h=>h.total)).toFixed(1)}
+  `;
+}
+
+function renderCharts() {
+  const sorted = [...history].reverse().slice(-14);
+  const labels = sorted.map(h=>h.date.slice(5));
+  const totals = sorted.map(h=>h.total);
+
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(document.getElementById('trend-chart'), {
+    type: 'line',
+    data: { labels, datasets: [{ label:'日總分', data:totals, borderColor:'#7F77DD', backgroundColor:'rgba(127,119,221,0.08)', tension:0.35, fill:true, pointRadius:3, pointBackgroundColor:'#534AB7' }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales: { y:{ min:0, max:10, ticks:{ stepSize:2, font:{size:11} }, grid:{ color:'rgba(128,128,128,0.08)' } }, x:{ ticks:{ font:{size:10}, maxRotation:45 }, grid:{ display:false } } } }
+  });
+
+  if (history.length) {
+    const latest = history[0];
+    if (radarChart) radarChart.destroy();
+    radarChart = new Chart(document.getElementById('radar-chart'), {
+      type: 'radar',
+      data: { labels:['工作表現','健康表現','人際與情緒'], datasets: [{ label:latest.date, data:[latest.workScore||0,latest.healthScore||0,latest.socialScore||0], borderColor:'#7F77DD', backgroundColor:'rgba(127,119,221,0.15)', pointBackgroundColor:'#534AB7', pointRadius:4 }] },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ r:{ min:0, max:10, ticks:{ stepSize:2, font:{size:10}, backdropColor:'transparent' }, pointLabels:{ font:{size:12} }, grid:{ color:'rgba(128,128,128,0.15)' } } } }
+    });
+  }
+}
+
+function testSheets() {
+  const url = document.getElementById('sheets-url').value.trim();
+  if (!url) { document.getElementById('sheets-status').innerHTML='<span class="status-pill s-err">請輸入網址</span>'; return; }
+  sheetsUrl = url; localStorage.setItem('sheets_daily_v2', url);
+  const s = document.getElementById('sheets-status');
+  s.innerHTML = '<span class="status-pill s-loading">測試中...</span>';
+  fetch(url, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify({test:true}) })
+    .then(()=>{ s.innerHTML='<span class="status-pill s-ok">連線成功</span>'; })
+    .catch(e=>{ s.innerHTML=`<span class="status-pill s-err">失敗：${e.message}</span>`; });
+}
+
+init();
+</script>
+</body>
+</html>
